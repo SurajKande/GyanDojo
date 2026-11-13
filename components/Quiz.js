@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { fmt } from '../lib/fmt';
 
-export default function Quiz({ date, onDone, onExit }) {
+export default function Quiz({ battle, date, onDone, onExit }) {
   const [qs, setQs] = useState([]);
   const [i, setI] = useState(0);
   const [val, setVal] = useState(undefined);
@@ -15,9 +15,9 @@ export default function Quiz({ date, onDone, onExit }) {
 
   useEffect(() => {
     (async () => {
-      const { data: quiz } = await supabase.from('daily_quizzes').select('question_ids').eq('quiz_date', date).single();
+      const { data: quiz } = await supabase.from('battle_quizzes').select('question_ids').eq('battle_id', battle).eq('quiz_date', date).single();
       const { data } = await supabase.from('questions').select('id,type,difficulty,topic,body').in('id', quiz.question_ids);
-      const { data: att } = await supabase.from('attempts').select('id,score').eq('quiz_date', date).maybeSingle();
+      const { data: att } = await supabase.from('attempts').select('id,score').eq('battle_id', battle).eq('quiz_date', date).maybeSingle();
       let done = [];
       if (att) {
         const { data: a } = await supabase.from('attempt_answers').select('question_id').eq('attempt_id', att.id);
@@ -30,7 +30,7 @@ export default function Quiz({ date, onDone, onExit }) {
       setI(Math.max(0, list.findIndex(q => !done.includes(q.id)))); // resume where you left off
       t0.current = Date.now();
     })();
-  }, [date]);
+  }, [date, battle]);
 
   if (!qs.length) return <p>Loading questions…</p>;
   const q = qs[i];
@@ -39,8 +39,8 @@ export default function Quiz({ date, onDone, onExit }) {
 
   async function check() {
     setBusy(true); setErr('');
-    const { data, error } = await supabase.rpc('answer_question',
-      { p_date: date, p_qid: q.id, p_answer: val ?? null, p_ms: Date.now() - t0.current });
+    const { data, error } = await supabase.rpc('answer_battle_question',
+      { p_battle: battle, p_date: date, p_qid: q.id, p_answer: val ?? null, p_ms: Date.now() - t0.current });
     setBusy(false);
     if (error) return setErr(error.message);
     setFb(data);
@@ -65,7 +65,7 @@ export default function Quiz({ date, onDone, onExit }) {
         <div className="meta">
           <span className="pill">{q.topic}</span>
           {last && <span className="pill boss">Final boss</span>}
-          <span>Level {q.difficulty}</span>
+          <span className={'belt b' + q.difficulty}>Lv {q.difficulty}</span>
           <span>{i + 1} / {qs.length}</span>
         </div>
         <p className="q">{q.body.q}</p>
