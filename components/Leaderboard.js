@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
+const medal = k => ['🥇', '🥈', '🥉'][k] || k + 1;
+
 export default function Leaderboard({ date }) {
   const [daily, setDaily] = useState([]);
   const [all, setAll] = useState([]);
@@ -13,7 +15,9 @@ export default function Leaderboard({ date }) {
       .order('total_score', { ascending: false }).then(r => setAll(r.data || []));
   }, [date]);
 
-  const list = (rows, key) => rows.map((r, k) => <li key={k}>{r.display_name} <span>{r[key]}</span></li>);
+  const list = (rows, key) => rows.map((r, k) => (
+    <li key={k}><b>{medal(k)}</b>{r.display_name}<span>{r[key]}</span></li>
+  ));
 
   return (
     <>
