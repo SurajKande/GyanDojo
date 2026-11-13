@@ -52,14 +52,14 @@ export default function Home() {
   if (!user) return <Auth />;
 
   return (<>
-    <header>
+    {state !== 'playing' && <header>
       <h1>Gyan<span style={{ color: '#4f46e5' }}>Dojo</span></h1>
       <nav>
         {streak > 0 && <span className="streak">🔥 {streak}</span>}
         <Link href="/review">Review</Link>
         <button className="ghost" onClick={() => supabase.auth.signOut()}>Sign out</button>
       </nav>
-    </header>
+    </header>}
     {state === 'loading' && <p>Loading…</p>}
     {state === 'error' && <p className="err">{msg}</p>}
     {state === 'ready' && (
@@ -70,7 +70,7 @@ export default function Home() {
         <button className="primary" onClick={() => setState('playing')}>{resume ? 'Resume quiz' : 'Start quiz'}</button>
       </div>
     )}
-    {state === 'playing' && <Quiz date={today()} onDone={s => { setScore(s); setState('done'); loadStreak(); }} />}
+    {state === 'playing' && <Quiz date={today()} onExit={() => { setResume(true); setState('ready'); }} onDone={s => { setScore(s); setState('done'); loadStreak(); }} />}
     {state === 'done' && (<>
       <div className="card">
         <small>Today’s score</small>

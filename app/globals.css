@@ -45,3 +45,18 @@ li b{width:28px;text-align:center}
 li span{margin-left:auto;font-weight:700}
 @keyframes pop{from{transform:scale(.96);opacity:0}to{transform:none;opacity:1}}
 @keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.hero{padding:28px 4px 18px}
+.logo{font-size:2rem}
+.logo span{color:var(--brand)}
+.hero p{color:var(--mute);line-height:1.5;margin:8px 0 0}
+.qbar{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.qbar .bar{flex:1;margin:0}
+.x{font-size:1.1rem;padding:6px 10px;color:var(--mute)}
+.pts{font-weight:800;color:var(--brand);min-width:36px;text-align:right}
+.quiz{padding-bottom:96px}
+.dock{position:fixed;left:0;right:0;bottom:0;padding:14px 16px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 75%,rgba(246,247,251,0))}
+.dock .primary{display:block;max-width:488px;margin:0 auto}
+.blank:disabled{opacity:1}
+.blank.right{border-color:var(--good);background:var(--goodbg);border-style:solid}
+.blank.wrong{border-color:var(--bad);background:var(--badbg);border-style:solid}
+.boss{background:#ffe9e0;color:#c2410c}
