@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { fmt } from '../lib/fmt';
 
-export default function Quiz({ date, onDone }) {
+export default function Quiz({ date, onDone, onExit }) {
   const [qs, setQs] = useState([]);
   const [i, setI] = useState(0);
   const [val, setVal] = useState(undefined);
@@ -51,27 +51,39 @@ export default function Quiz({ date, onDone }) {
   function next() {
     if (last) return onDone(score);
     setI(i + 1); setVal(undefined); setFb(null); t0.current = Date.now();
+    window.scrollTo(0, 0);
   }
 
   return (
-    <div>
-      <div className="bar"><i style={{ width: `${((i + (fb ? 1 : 0)) / qs.length) * 100}%` }} /></div>
+    <div className="quiz">
+      <div className="qbar">
+        <button className="ghost x" aria-label="Exit quiz (progress is saved)" onClick={onExit}>✕</button>
+        <div className="bar"><i style={{ width: `${((i + (fb ? 1 : 0)) / qs.length) * 100}%` }} /></div>
+        <span className="pts">{score}</span>
+      </div>
       <div className="card">
-        <div className="meta"><span className="pill">{q.topic}</span><span>Level {q.difficulty}</span><span>{i + 1} / {qs.length}</span></div>
+        <div className="meta">
+          <span className="pill">{q.topic}</span>
+          {last && <span className="pill boss">Final boss</span>}
+          <span>Level {q.difficulty}</span>
+          <span>{i + 1} / {qs.length}</span>
+        </div>
         <p className="q">{q.body.q}</p>
         <Answer q={q} value={val} onChange={setVal} fb={fb} />
       </div>
       {fb && (
         <div className={'fb ' + (fb.correct ? 'good' : 'bad')}>
-          <b>{fb.correct ? `Correct! +${fb.points}` : 'Not quite'}</b>
+          <b>{fb.correct ? `✓ Correct! +${fb.points}` : '✗ Not quite. Now you know it.'}</b>
           {!fb.correct && <p>Answer: {fmt(q.type, q.body, fb.answer)}</p>}
           <p>{fb.explanation}</p>
         </div>
       )}
       {err && <p className="err">{err}</p>}
-      <button className="primary" disabled={busy || (!fb && !filled)} onClick={fb ? next : check}>
-        {fb ? (last ? 'See results' : 'Continue') : 'Check'}
-      </button>
+      <div className="dock">
+        <button className="primary" disabled={busy || (!fb && !filled)} onClick={fb ? next : check}>
+          {fb ? (last ? 'See results' : 'Continue') : 'Check'}
+        </button>
+      </div>
     </div>
   );
 }
@@ -79,25 +91,28 @@ export default function Quiz({ date, onDone }) {
 function Answer({ q, value, onChange, fb }) {
   const { type, body } = q;
   const lock = !!fb;
-  // after checking: right option green, your wrong pick red
-  const mark = (k, picked) => {
-    if (!fb) return picked ? ' on' : '';
+  // after checking: right option green, your wrong pick red, each with an icon
+  const st = (k, picked) => {
+    if (!fb) return picked ? 'on' : '';
     const right = Array.isArray(fb.answer) ? fb.answer.includes(k) : fb.answer === k;
-    return right ? ' right' : picked ? ' wrong' : '';
+    return right ? 'right' : picked ? 'wrong' : '';
   };
+  const ico = s => (s === 'right' ? ' ✓' : s === 'wrong' ? ' ✗' : '');
 
   if (type === 'single' || type === 'scenario')
-    return body.options.map((o, k) => (
-      <button key={k} disabled={lock} className={'opt' + mark(k, value === k)} onClick={() => onChange(k)}>{o}</button>
-    ));
+    return body.options.map((o, k) => {
+      const s = st(k, value === k);
+      return <button key={k} disabled={lock} className={'opt ' + s} onClick={() => onChange(k)}>{o}{ico(s)}</button>;
+    });
 
   if (type === 'multi') {
     const sel = value || [];
     const flip = k => onChange(sel.includes(k) ? sel.filter(x => x !== k) : [...sel, k].sort((a, b) => a - b));
     return (<>
-      {body.options.map((o, k) => (
-        <button key={k} disabled={lock} className={'opt' + mark(k, sel.includes(k))} onClick={() => flip(k)}>{o}</button>
-      ))}
+      {body.options.map((o, k) => {
+        const s = st(k, sel.includes(k));
+        return <button key={k} disabled={lock} className={'opt ' + s} onClick={() => flip(k)}>{o}{ico(s)}</button>;
+      })}
       <small>Select all that apply</small>
     </>);
   }
@@ -110,9 +125,12 @@ function Answer({ q, value, onChange, fb }) {
     const sel = value || Array(parts.length - 1).fill(null);
     const put = t => { const k = sel.indexOf(null); if (k >= 0) { const n = [...sel]; n[k] = t; onChange(n); } };
     const clear = k => { const n = [...sel]; n[k] = null; onChange(n); };
+    const verdict = k => (fb ? (sel[k] === fb.answer[k] ? 'right' : 'wrong') : '');
     return (<>
       <pre>{parts.map((p, k) => (
-        <span key={k}>{p}{k < sel.length && <button disabled={lock} className="blank" onClick={() => clear(k)}>{sel[k] || '____'}</button>}</span>
+        <span key={k}>{p}{k < sel.length && (
+          <button disabled={lock} className={'blank ' + verdict(k)} onClick={() => clear(k)}>{(sel[k] || '____') + ico(verdict(k))}</button>
+        )}</span>
       ))}</pre>
       <div>{body.tokens.map(t => (
         <button key={t} className="chip" disabled={lock || sel.includes(t)} onClick={() => put(t)}>{t}</button>

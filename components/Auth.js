@@ -22,16 +22,22 @@ export default function Auth() {
   }
 
   return (
-    <div className="card">
-      <h2>{mode === 'signup' ? 'Join the dojo' : 'Sign in'}</h2>
-      {mode === 'signup' && <input placeholder="Display name" value={name} onChange={e => setName(e.target.value)} />}
-      <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
-      <input type="password" placeholder="Password (min 6 characters)" value={password} onChange={e => setPassword(e.target.value)} />
-      <button onClick={go}>{mode === 'signup' ? 'Create account' : 'Sign in'}</button>
-      <p className="err">{msg}</p>
-      <small><a href="#" onClick={e => { e.preventDefault(); setMode(mode === 'signup' ? 'signin' : 'signup'); }}>
-        {mode === 'signup' ? 'Have an account? Sign in' : 'New here? Create an account'}
-      </a></small>
-    </div>
+    <>
+      <div className="hero">
+        <h1 className="logo">Gyan<span>Dojo</span></h1>
+        <p>One daily quiz on Selenium, Playwright, API, SQL, Java and DSA. Beat your friends on the leaderboard.</p>
+      </div>
+      <div className="card">
+        <h2>{mode === 'signup' ? 'Join the dojo' : 'Welcome back'}</h2>
+        {mode === 'signup' && <input placeholder="Display name" value={name} onChange={e => setName(e.target.value)} />}
+        <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
+        <input type="password" placeholder="Password (min 6 characters)" value={password} onChange={e => setPassword(e.target.value)} />
+        <button className="primary" onClick={go}>{mode === 'signup' ? 'Create account' : 'Sign in'}</button>
+        <p className="err">{msg}</p>
+        <small><a href="#" onClick={e => { e.preventDefault(); setMode(mode === 'signup' ? 'signin' : 'signup'); }}>
+          {mode === 'signup' ? 'Have an account? Sign in' : 'New here? Create an account'}
+        </a></small>
+      </div>
+    </>
   );
 }
