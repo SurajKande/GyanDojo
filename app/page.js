@@ -22,10 +22,22 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const c = new URLSearchParams(window.location.search).get('join');
+    if (c) { localStorage.setItem('pendingJoin', c); window.history.replaceState({}, '', '/'); }
+  }, []);
+
+  useEffect(() => {
     if (!user) return;
     (async () => {
       const dn = user.user_metadata?.name || user.email.split('@')[0];
       await supabase.from('profiles').upsert({ id: user.id, display_name: dn }, { onConflict: 'id', ignoreDuplicates: true });
+      const pj = localStorage.getItem('pendingJoin');
+      if (pj) {
+        localStorage.removeItem('pendingJoin');
+        const j = await supabase.rpc('join_battle', { p_code: pj });
+        if (!j.error) { router.push('/battle/' + j.data); return; }
+        setMsg(j.error.message);
+      }
       const [b, a] = await Promise.all([
         supabase.rpc('my_battles'),
         supabase.from('attempts').select('battle_id,quiz_date,finished_at').not('battle_id', 'is', null),
@@ -67,7 +79,7 @@ export default function Home() {
       return (
         <Link key={b.id} href={'/battle/' + b.id} className="battle">
           <div><b>{b.name}</b><small>{b.is_solo ? 'Just you' : `${b.members} player${b.members === 1 ? '' : 's'}`}</small></div>
-          <div className="right">
+          <div className="side">
             <span className="streak">🔥 {s}</span>
             <span className={'status' + (t?.finished_at ? ' done' : '')}>{t?.finished_at ? 'Done today ✓' : t ? 'Resume' : 'Play today'}</span>
           </div>
