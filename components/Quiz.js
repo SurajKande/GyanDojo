@@ -69,6 +69,7 @@ export default function Quiz({ battle, date, onDone, onExit }) {
           <span>{i + 1} / {qs.length}</span>
         </div>
         <p className="q">{q.body.q}</p>
+        {q.type !== 'code_fill' && q.body.code && <pre>{q.body.code}</pre>}
         <Answer q={q} value={val} onChange={setVal} fb={fb} />
       </div>
       {fb && (
