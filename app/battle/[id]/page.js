@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
 import { today, streakFor } from '../../../lib/dates';
 import Quiz from '../../../components/Quiz';
+import Tabs from '../../../components/Tabs';
 
 const medal = k => ['🥇', '🥈', '🥉'][k] || k + 1;
 
@@ -18,6 +19,7 @@ export default function Battle() {
   const [streak, setStreak] = useState(0);
   const [tab, setTab] = useState('today');
   const [copied, setCopied] = useState(false);
+  const [uid, setUid] = useState(null);
   const [msg, setMsg] = useState('');
 
   async function refresh() {
@@ -30,6 +32,8 @@ export default function Battle() {
 
   useEffect(() => {
     (async () => {
+      const { data: u } = await supabase.auth.getUser();
+      setUid(u.user?.id || null);
       const { data } = await supabase.from('battles').select('id,name,code,is_solo').eq('id', id).maybeSingle();
       if (!data) { setMsg('Battle not found. Sign in first, or ask for an invite code.'); setState('error'); return; }
       setB(data);
@@ -40,10 +44,27 @@ export default function Battle() {
     })();
   }, [id]);
 
+  async function shareScore() {
+    const url = b.is_solo ? window.location.origin : `${window.location.origin}/?join=${b.code}`;
+    const text = `I scored ${score} on today's GyanDojo quiz${myRank > 0 && board.length > 1 ? ` and I'm #${myRank} in "${b.name}"` : ''}. Beat me: ${url}`;
+    if (navigator.share) { try { await navigator.share({ text }); } catch (e) {} return; }
+    navigator.clipboard?.writeText(text);
+    setCopied('score');
+  }
+
+  async function share() {
+    const url = `${window.location.origin}/?join=${b.code}`;
+    const text = `Join my GyanDojo battle "${b.name}"! Open ${url} and sign up. Invite code: ${b.code}`;
+    if (navigator.share) { try { await navigator.share({ text }); } catch (e) {} return; }
+    navigator.clipboard?.writeText(text);
+    setCopied('link');
+  }
+
   if (state === 'playing')
     return <Quiz battle={id} date={today()} onExit={() => { setResume(true); setState('ready'); refresh(); }}
       onDone={async s => { setScore(s); setState('done'); await refresh(); }} />;
 
+  const myRank = [...board].sort((x, y) => y.today_score - x.today_score).findIndex(r => r.user_id === uid) + 1;
   const rows = [...board].sort((x, y) => tab === 'today'
     ? y.today_score - x.today_score : Number(y.total_score) - Number(x.total_score));
 
@@ -62,7 +83,10 @@ export default function Battle() {
       </div>
     )}
     {state === 'done' && (
-      <div className="card"><small>Your score today</small><p className="big">{score}</p><p>Come back tomorrow to keep your streak.</p></div>
+      <div className="card"><small>Your score today</small><p className="big">{score}</p>
+        {myRank > 0 && board.length > 1 && <p>You are <b>#{myRank}</b> of {board.length} today.</p>}
+        <p>Come back tomorrow to keep your streak.</p>
+        <button className="primary" onClick={shareScore}>Share my score</button></div>
     )}
     {state === 'error' && <div className="card"><p className="err">{msg}</p></div>}
 
@@ -79,10 +103,13 @@ export default function Battle() {
 
     {b && !b.is_solo && (
       <div className="card">
-        <small>Invite friends with this code</small>
+        <small>Invite friends</small>
         <div className="row"><span className="code">{b.code}</span>
-          <button className="chip" onClick={() => { navigator.clipboard?.writeText(b.code); setCopied(true); }}>{copied ? 'Copied ✓' : 'Copy'}</button></div>
+          <button className="chip" onClick={() => { navigator.clipboard?.writeText(b.code); setCopied('code'); }}>{copied === 'code' ? 'Copied ✓' : 'Copy code'}</button></div>
+        <p className="linkline">{window.location.origin}/?join={b.code}</p>
+        <button className="primary" onClick={share}>{copied === 'link' ? 'Copied ✓' : 'Share invite link'}</button>
       </div>
     )}
+    <Tabs />
   </>);
 }

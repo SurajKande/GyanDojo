@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabase';
 import { today, streakFor } from '../lib/dates';
 import Auth from '../components/Auth';
+import Tabs from '../components/Tabs';
 
 export default function Home() {
   const router = useRouter();
@@ -67,7 +68,7 @@ export default function Home() {
   return (<>
     <header>
       <h1 className="logo">Gyan<span>Dojo</span></h1>
-      <nav><Link href="/review">Review</Link><button className="ghost" onClick={() => supabase.auth.signOut()}>Sign out</button></nav>
+      <nav><button className="ghost" onClick={() => supabase.auth.signOut()}>Sign out</button></nav>
     </header>
 
     <p className="section">Your battles</p>
@@ -97,5 +98,6 @@ export default function Home() {
       <button className="primary alt" disabled={code.trim().length < 4} onClick={join}>Join battle</button>
     </div>
     {msg && <p className="err">{msg}</p>}
+    <Tabs />
   </>);
 }

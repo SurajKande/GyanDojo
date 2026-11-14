@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { fmt } from '../lib/fmt';
+import { loadStars, setStar } from '../lib/stars';
 
 export default function Quiz({ battle, date, onDone, onExit }) {
   const [qs, setQs] = useState([]);
@@ -10,6 +11,8 @@ export default function Quiz({ battle, date, onDone, onExit }) {
   const [fb, setFb] = useState(null);
   const [score, setScore] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [stars, setStars] = useState(new Set());
+  const [rep, setRep] = useState({});
   const [err, setErr] = useState('');
   const t0 = useRef(Date.now());
 
@@ -27,6 +30,7 @@ export default function Quiz({ battle, date, onDone, onExit }) {
       const byId = Object.fromEntries(data.map(q => [q.id, q]));
       const list = quiz.question_ids.map(id => byId[id]).filter(Boolean);
       setQs(list);
+      setStars(await loadStars());
       setI(Math.max(0, list.findIndex(q => !done.includes(q.id)))); // resume where you left off
       t0.current = Date.now();
     })();
@@ -48,6 +52,19 @@ export default function Quiz({ battle, date, onDone, onExit }) {
     if (data.correct && navigator.vibrate) navigator.vibrate(30);
   }
 
+  function toggleStar() {
+    const on = !stars.has(q.id);
+    const n = new Set(stars);
+    if (on) n.add(q.id); else n.delete(q.id);
+    setStars(n);
+    setStar(q.id, on);
+  }
+
+  async function report() {
+    setRep({ ...rep, [q.id]: true });
+    await supabase.rpc('report_question', { p_qid: q.id });
+  }
+
   function next() {
     if (last) return onDone(score);
     setI(i + 1); setVal(undefined); setFb(null); t0.current = Date.now();
@@ -66,7 +83,8 @@ export default function Quiz({ battle, date, onDone, onExit }) {
           <span className="pill">{q.topic}</span>
           {last && <span className="pill boss">Final boss</span>}
           <span className={'belt b' + q.difficulty}>Lv {q.difficulty}</span>
-          <span>{i + 1} / {qs.length}</span>
+          <span className="count">{i + 1} / {qs.length}</span>
+          <button className="star" aria-label="Star question" onClick={toggleStar}>{stars.has(q.id) ? '★' : '☆'}</button>
         </div>
         <p className="q">{q.body.q}</p>
         {q.type !== 'code_fill' && q.body.code && <pre>{q.body.code}</pre>}
@@ -77,6 +95,7 @@ export default function Quiz({ battle, date, onDone, onExit }) {
           <b>{fb.correct ? `✓ Correct! +${fb.points}` : '✗ Not quite. Now you know it.'}</b>
           {!fb.correct && <p>Answer: {fmt(q.type, q.body, fb.answer)}</p>}
           <p>{fb.explanation}</p>
+          <button className="linkbtn" disabled={rep[q.id]} onClick={report}>{rep[q.id] ? 'Thanks, reported ✓' : 'Report wrong answer'}</button>
         </div>
       )}
       {err && <p className="err">{err}</p>}
